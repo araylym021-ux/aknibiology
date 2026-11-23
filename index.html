@@ -46,7 +46,7 @@ main{position:relative;z-index:1}.lf{position:fixed;top:-40px;opacity:.28;pointe
 <div id="bal" hidden><div class="c"><h3>Реакция теңестіруші</h3><input id="eq" value="Fe + O2 -> Fe2O3"><div class="row"><button id="bb">Теңестіру</button></div><h3 id="bo"></h3></div></div></section>
 
 <section class="v" id="study" hidden><h2>Карточка, майндмап, тест</h2>
-<div class="c"><select id="tp"></select><details><summary>➕ Өз тақырыбың (кез келген)</summary><p class="mut">Әр жолға: термин | анықтама (кемінде 4 жол)</p><textarea id="cu" rows="5" placeholder="Митоз | жасушаның бөлінуі&#10;..."></textarea><div class="row"><button id="mk">Жасау</button></div></details>
+<div class="c"><select id="tp"></select><details><summary>➕ Өз тақырыбың (кез келген)</summary><p class="mut">Әр жолға: термин | анықтама (кемінде 4 жол)</p><textarea id="cu" rows="5" placeholder="Митоз | жасушаның бөлінуі&#10;..."></textarea><div class="row"><button id="mk">Жасау</button></div><hr><input id="tp2" placeholder="Тек тақырыпты жаз: мысалы, Бауыр немесе Абылай хан"><div class="row"><button id="mk2">🤖 AI-мен карточка жасау</button></div></details>
 <div class="row"><button class="on" data-s="fc">🃏 Карточка</button><button class="o" data-s="mm">🕸 Майндмап</button><button class="o" data-s="ts">📝 Тест</button></div></div>
 <div class="c" id="sv"></div></section>
 
@@ -112,7 +112,19 @@ function nsv(){try{localStorage.setItem('nl',JSON.stringify(NL))}catch(e){}$('#n
 function shw(n){cur=n;const L=a=>a.length?'<ul>'+a.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':'<p class="mut">—</p>';$('#no').hidden=false;$('#no').innerHTML=`<h2>${esc(n.t)}</h2><p class="mut">${esc(n.s)}</p><h3>Анықтама</h3><p>${esc(n.d)}</p><h3>Негізгі ақпарат</h3>${L(n.k)}`+(n.ls.length?`<h3>Құрылымы / кезеңдері</h3>${L(n.ls)}`:'')+`<h3>Маңызды терминдер</h3>${L(n.tm.map(x=>x[0]+' — '+x[1]))}<p class="mut">Кілт сөздер: ${esc(n.kw.join(', '))}</p>`+(n.nums.length?`<h3>ҰБТ-да есте сақтайтын мәліметтер</h3>${L(n.nums)}`:'')+`<h3>Қайталау сұрақтары</h3>${L(n.qs)}<div class="row"><button id="nsv">⭐ Сақтау</button><button class="o" id="ncp">Көшіру</button><button class="o" id="ncd">🃏 Карточкаға айналдыру</button></div>`;
 $('#nsv').onclick=()=>{NL=[n,...NL.filter(x=>x.t!=n.t)].slice(0,20);nsv()};$('#ncp').onclick=()=>{try{navigator.clipboard.writeText($('#no').innerText)}catch(e){}};
 $('#ncd').onclick=()=>{if(n.tm.length<2)return alert('Карточкаға айналдыру үшін мәтінде «термин — анықтама» түріндегі сөйлемдер керек');T['📝 '+n.t]=n.tm;$('#tp').innerHTML=Object.keys(T).map(k=>`<option>${k}</option>`).join('');$('#tp').value='📝 '+n.t;go('study');draw()}}
-$('#nb').onclick=()=>{let tx=$('#ntx').value.trim();const t=$('#nt').value.trim()||'Тақырып';if(!tx){const k=Object.keys(T).find(k=>k.toLowerCase().includes(t.toLowerCase()));if(k)tx=T[k].map(c=>c[0]+' — '+c[1]+'.').join(' ')}
+/* Gemini: Cloudflare Worker сілтемесін осында қой */
+const API='https://flat-surf-28bf.araylym021.workers.dev/';
+async function gem(p){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:p})});if(!r.ok)throw 0;return (await r.json()).text}
+async function ai(){if(API.includes('ВАШ'))return false;const t=$('#nt').value.trim(),tx=$('#ntx').value.trim();if(!t&&!tx)return false;
+const b=$('#nb');b.disabled=true;b.textContent='⏳ Жасалуда...';
+try{const p=`Сен ҰБТ-ға дайындалатын оқушыға арналған көмекшісің. Пән: ${$('#nsb').value}. Тақырып: ${t||'мәтіннен анықта'}. ${tx?'Мына оқулық мәтініне сүйен:\n'+tx.slice(0,3000):'Мектеп бағдарламасы бойынша жаз.'}\n\nҚазақ тілінде конспект жаз. Құрылымы: Анықтама; Негізгі ақпарат; Құрылымы немесе кезеңдері; Маңызды терминдер («термин — анықтама» түрінде); ҰБТ-да есте сақтайтын мәліметтер; Қателеспеу керек тұстар; 5 қайталау сұрағы. Қысқа әрі нақты жаз, жұлдызша мен markdown белгілерін қолданба.`;
+const x=await gem(p);$('#no').hidden=false;$('#no').innerHTML=`<h2>${esc(t||'Конспект')}</h2><div style="white-space:pre-wrap">${esc(x)}</div><div class="row"><button class="o" id="ncp">Көшіру</button></div>`;$('#ncp').onclick=()=>{try{navigator.clipboard.writeText(x)}catch(e){}};$('#no').scrollIntoView({behavior:'smooth'});return true}
+catch(e){return false}finally{b.disabled=false;b.textContent='📝 Конспект құрастыру'}}
+$('#mk2').onclick=async()=>{const t=$('#tp2').value.trim(),b=$('#mk2');if(!t)return;if(API.includes('ВАШ'))return alert('Алдымен Worker сілтемесін API жолына қой');b.disabled=true;b.textContent='⏳ Жасалуда...';
+try{const x=await gem(`«${t}» тақырыбы бойынша ҰБТ-ға арналған 10 оқу карточкасын жаз. Әр жолға тек мына форматта: термин | қысқа анықтама. Басқа мәтін, нөмір немесе белгі жазба.`);
+const L=x.split('\n').map(l=>l.replace(/^[\s\d.)*•-]+/,'').replace(/\*/g,'').split('|').map(s=>s.trim())).filter(a=>a.length>1&&a[0]&&a[1]);
+if(L.length<4)throw 0;T['🤖 '+t]=L;$('#tp').innerHTML=Object.keys(T).map(k=>`<option>${k}</option>`).join('');$('#tp').value='🤖 '+t;draw()}catch(e){alert('Жасалмады, қайталап көр')}finally{b.disabled=false;b.textContent='🤖 AI-мен карточка жасау'}};
+$('#nb').onclick=async()=>{if(await ai())return;let tx=$('#ntx').value.trim();const t=$('#nt').value.trim()||'Тақырып';if(!tx){const k=Object.keys(T).find(k=>k.toLowerCase().includes(t.toLowerCase()));if(k)tx=T[k].map(c=>c[0]+' — '+c[1]+'.').join(' ')}
 if(tx.length<40)return alert('Оқулықтан мәтінді қойыңыз (кемінде бір-екі сөйлем)');
 const S=(tx.replace(/\s+/g,' ').match(/[^.!?]+[.!?]+|[^.!?]+$/g)||[]).map(x=>x.trim()).filter(x=>x.length>15),W=s=>s.toLowerCase().match(/[a-zа-яәіңғүұқөһё]{4,}/g)||[],f={};S.forEach(s=>W(s).forEach(w=>f[w]=(f[w]||0)+1));
 const sc=S.map((s,i)=>[i,W(s).reduce((a,w)=>a+f[w],0)/Math.sqrt(W(s).length+1)+(i<2?2:0)]);
